@@ -1,0 +1,1 @@
+前五個是serial_num_pre + i, received.len, rssi_pre, received.rx_ctrl.noise_floor, received.rx_ctrl.rx_state
