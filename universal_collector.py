@@ -1,15 +1,38 @@
 """
-This is a fast and light weight serial data collect module.
+This is a fast and lightweight serial data collection module.
 
 -----------------------------------------
-simple, affective, easy to use
+Simple, effective, and easy to use
 -----------------------------------------
 
-Ricky 2023/10/10
+You should put everything that needs to be done in real-time processing in the 'activity' method.
+
+If you need to use async in activity, please override the activity with:
+
+async def activity_async(self, data):
+
+and change:
+
+async def __collection_main(self):
+    self.__task_collection = asyncio.create_task(self.__collect_core())
+    self.__pop_gen = self.__pop_core()
+    async for data in self.__pop_gen:
+        await self.activity_async(data)  # here
+
+Furthermore, you can add:
+
+def __init__(self, Port: str, Baud: int):
+    self.lock = asyncio.Lock()
+
+to help you with accessing the same parameter.
+
+Author: Ricky
+Date: 2023/10/10
 """
 
 import serial
 import asyncio
+import atexit
 
 class serial_target():
     def __init__(self,Port: str,Baud: int):
@@ -20,6 +43,10 @@ class serial_target():
         self.__ser: serial.Serial
         self.__buff: str = ""
         self.__terminate: bool = False
+        self.__S_INIT: bool = False
+        atexit.register(self.system_close())
+
+        
     
 
     #set collect interval
@@ -43,14 +70,16 @@ class serial_target():
             return False
     
     #initialize serial
-    def serial_init(self):
+    def serial_init(self)->bool:
         try:
             self.__ser = serial.Serial(self.__Port,self.__Baud)
             print("SERIAL INITIALIZATION SUCCESS")
-            return True
+            self.__S_INIT = True
+            return self.__S_INIT
         except:
             print("SERIAL INITIALIZATION FAIL")
-            return False
+            self.__S_INIT = False
+            return self.__S_INIT
     
     
     #output data core
@@ -71,11 +100,16 @@ class serial_target():
 
     #main collection system
     async def __collection_main(self):
-        self.__task_collection = asyncio.create_task(self.__collect_core())
-        self.__pop_gen = self.__pop_core()
-        async for data in self.__pop_gen:
-            self.activity(data)
+        if self.__S_INIT:
+            print("COLLECTION MAIN START")
+            self.__task_collection = asyncio.create_task(self.__collect_core())
+            self.__pop_gen = self.__pop_core()
+            async for data in self.__pop_gen:
+                self.activity(data)
+        elif self.__S_INIT:
+            print("TERMINATE COLLECTION MAIN")
 
+    #run data collection
     def collect(self):
         asyncio.run(self.__collection_main())
 
@@ -95,3 +129,6 @@ class serial_target():
     #write you code in activity
     def activity(self,data):
         pass
+
+
+
