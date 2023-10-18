@@ -44,7 +44,7 @@ class serial_target():
         self.__buff: str = ""
         self.__terminate: bool = False
         self.__S_INIT: bool = False
-        atexit.register(self.system_close())
+        atexit.register(self.system_close)
 
         
     

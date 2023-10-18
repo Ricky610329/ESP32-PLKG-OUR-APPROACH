@@ -9,7 +9,7 @@ class printer(uc.serial_target):
             print(data)
             file.write(data)
 
-test = printer("COM5","115200")
+test = printer("COM6","115200")
 
 test.serial_init()
 test.collect()
