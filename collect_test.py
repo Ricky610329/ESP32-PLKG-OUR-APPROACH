@@ -4,9 +4,11 @@ Filename = "CSIdata.txt"
 
 
 class printer(uc.serial_target):
+    def __init__(self, Port: str, Baud: int):
+        super().__init__(Port, Baud)
     def activity(self,data):
+        print(data)
         with open(Filename,'a') as file:
-            print(data)
             file.write(data)
 
 test = printer("COM6","115200")

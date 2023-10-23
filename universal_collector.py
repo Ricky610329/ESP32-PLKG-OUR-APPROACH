@@ -13,9 +13,9 @@ async def activity_async(self, data):
 
 and change:
 
-async def __collection_main(self):
-    self.__task_collection = asyncio.create_task(self.__collect_core())
-    self.__pop_gen = self.__pop_core()
+async def _collection_main(self):
+    self.__task_collection = asyncio.create_task(self._collect_core())
+    self.__pop_gen = self._pop_core()
     async for data in self.__pop_gen:
         await self.activity_async(data)  # here
 
@@ -36,14 +36,15 @@ import atexit
 
 class serial_target():
     def __init__(self,Port: str,Baud: int):
-        self.__Port:str = Port
-        self.__Baud:int = Baud
-        self.__collect_interval:float = 0.1 #how long to check serial input
-        self.__output_interval:float = 5 #how long to output serial data, use yield
-        self.__ser: serial.Serial
-        self.__buff: str = ""
-        self.__terminate: bool = False
-        self.__S_INIT: bool = False
+        self._Port:str = Port
+        self._Baud:int = Baud
+        self._collect_interval:float = 0.1 #how long to check serial input
+        self._output_interval:float = 5 #how long to output serial data, use yield
+        self._ser: serial.Serial
+        self._buff: str = ""
+        self._terminate: bool = False
+        self._S_INIT: bool = False
+        self._lock = asyncio.Lock()
         atexit.register(self.system_close)
 
         
@@ -52,7 +53,7 @@ class serial_target():
     #set collect interval
     def set_collect_interval(self, collect_interval: float) -> bool:
         try:
-            self.__collect_interval = collect_interval
+            self._collect_interval = collect_interval
             print("COLLECT INTERVAL CHANGE SUCCESS")
             return True
         except:
@@ -62,7 +63,7 @@ class serial_target():
     #set output interval
     def set_output_interval(self, output_interval: float) -> bool:
         try:
-            self.__output_interval = output_interval
+            self._output_interval = output_interval
             print("OUTPUT INTERVAL CHANGE SUCCESS")
             return True
         except:
@@ -72,53 +73,54 @@ class serial_target():
     #initialize serial
     def serial_init(self)->bool:
         try:
-            self.__ser = serial.Serial(self.__Port,self.__Baud)
+            self._ser = serial.Serial(self._Port,self._Baud)
             print("SERIAL INITIALIZATION SUCCESS")
-            self.__S_INIT = True
-            return self.__S_INIT
+            self._S_INIT = True
+            return self._S_INIT
         except:
             print("SERIAL INITIALIZATION FAIL")
-            self.__S_INIT = False
-            return self.__S_INIT
+            self._S_INIT = False
+            return self._S_INIT
     
     
     #output data core
-    async def __pop_core(self):
-        while not self.__terminate:
-            await asyncio.sleep(self.__output_interval)
-            yield self.__buff
-            self.__buff = ""
+    async def _pop_core(self):
+        while not self._terminate:
+            async with self._lock:
+                await asyncio.sleep(self._output_interval)
+                yield self._buff
+                self._buff = ""
 
     #collect serial data core
-    async def __collect_core(self):
-        while not self.__terminate:
+    async def _collect_core(self):
+        while not self._terminate:
             try:
-                self.__buff = self.__buff + self.__ser.read(self.__ser.in_waiting).decode()
+                self._buff = self._buff + self._ser.read(self._ser.in_waiting).decode()
             except UnicodeDecodeError:
                 return False
-            await asyncio.sleep(self.__collect_interval)
+            await asyncio.sleep(self._collect_interval)
 
     #main collection system
-    async def __collection_main(self):
-        if self.__S_INIT:
+    async def _collection_main(self):
+        if self._S_INIT:
             print("COLLECTION MAIN START")
-            self.__task_collection = asyncio.create_task(self.__collect_core())
-            self.__pop_gen = self.__pop_core()
+            self.__task_collection = asyncio.create_task(self._collect_core())
+            self.__pop_gen = self._pop_core()
             async for data in self.__pop_gen:
-                self.activity(data)
-        elif self.__S_INIT:
+                await self.activity(data)
+        elif self._S_INIT:
             print("TERMINATE COLLECTION MAIN")
 
     #run data collection
     def collect(self):
-        asyncio.run(self.__collection_main())
+        asyncio.run(self._collection_main())
 
     
     #close serial
     def system_close(self):
         try:
-            self.__terminate = True
-            self.__ser.close()
+            self._terminate = True
+            self._ser.close()
             print("SERIAL CLOSED")
             return True
         except:
@@ -127,8 +129,5 @@ class serial_target():
         
     
     #write you code in activity
-    def activity(self,data):
+    async def activity_async(self, data):
         pass
-
-
-
