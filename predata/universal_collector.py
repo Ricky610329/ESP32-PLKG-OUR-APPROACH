@@ -72,6 +72,8 @@ class serial_target():
     
     #initialize serial
     def serial_init(self)->bool:
+        self._terminate = False
+        self._S_INIT = False
         try:
             self._ser = serial.Serial(self._Port,self._Baud)
             print("SERIAL INITIALIZATION SUCCESS")

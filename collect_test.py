@@ -1,6 +1,7 @@
-import universal_collector as uc
+from predata import universal_collector as uc
 import asyncio
 import glob
+import threading
 
 Data_Path = r"./collect_data"
 
@@ -21,7 +22,7 @@ def FileNameGenerator(AutoIndex:bool = True, Custom: bool = False):
     if not AutoIndex and Custom:
         filename = input("Custom>>")
         filename =  Data_Path + r"/" + filename + filetype
-
+    print(filename)
     return filename
 
 
@@ -35,19 +36,28 @@ class printer(uc.serial_target):
     def newFilename(self):
         self.filename = FileNameGenerator()
     async def activity(self,data):
-        print(data)
+        #print(data)
         with open(self.filename,'a') as file:
             file.write(data)
 
-collect_monitor = printer("COM5","115200")
 
-##initial collection
-##serial close
+def main():
+    collect_monitor = printer("COM5","115200")
 
-while True:
-    command = input("\n>>")
-    if command == "r":
-        collect_monitor.newFilename()
-        collect_monitor.serial_init()
-        collect_monitor.collect()
+    ##initial collection
+    ##serial close
 
+    while True:
+        command = input("\n>>")
+        if command == "r":
+            collect_monitor.newFilename()
+            collect_monitor.serial_init()
+            task = threading.Thread(target = collect_monitor.collect)
+            task.start()
+        if command == 'q':
+        
+            collect_monitor.system_close()
+            task.join()
+
+if __name__ == "__main__":
+    main()
