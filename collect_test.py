@@ -1,4 +1,4 @@
-from predata import universal_collector as uc
+import predata.universal_collector as uc
 import asyncio
 import glob
 import threading
@@ -17,13 +17,18 @@ def FileNameGenerator(AutoIndex:bool = True, Custom: bool = False):
         if len(filelist) == 0:
             index = 1
         else:
-            index = int(filelist[-1][len(Data_Path)+len(Defult)+1:-len(filetype)]) + 1
+            index = 1
+            for s in filelist:
+                temp = int(s[len(Data_Path)+len(Defult)+1:-len(filetype)]) + 1
+                index = max(temp,index)
         filename =  Data_Path + r"/" + Defult + str(index) + filetype
     if not AutoIndex and Custom:
         filename = input("Custom>>")
         filename =  Data_Path + r"/" + filename + filetype
     print(filename)
     return filename
+
+
 
 
 
@@ -39,6 +44,7 @@ class printer(uc.serial_target):
         #print(data)
         with open(self.filename,'a') as file:
             file.write(data)
+
 
 
 def main():

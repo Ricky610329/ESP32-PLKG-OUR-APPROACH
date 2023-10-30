@@ -89,17 +89,17 @@ class serial_target():
     async def _pop_core(self):
         while not self._terminate:
             async with self._lock:
-                await asyncio.sleep(self._output_interval)
                 yield self._buff
                 self._buff = ""
-
+            await asyncio.sleep(self._output_interval)
     #collect serial data core
     async def _collect_core(self):
         while not self._terminate:
-            try:
-                self._buff = self._buff + self._ser.read(self._ser.in_waiting).decode()
-            except UnicodeDecodeError:
-                return False
+            async with self._lock:
+                try:
+                    self._buff = self._buff + self._ser.read(self._ser.in_waiting).decode()
+                except UnicodeDecodeError:
+                    return False
             await asyncio.sleep(self._collect_interval)
 
     #main collection system
